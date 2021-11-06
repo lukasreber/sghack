@@ -1,7 +1,10 @@
 import streamlit as st
 from streamlit_folium import folium_static
 import pandas as pd
+import requests
+import json
 import folium
+from pandas import json_normalize
 
 st.image('logo.jpeg')
 
@@ -13,6 +16,8 @@ immo_supermarket = pd.read_csv('supermarkets.csv')
 
 st.sidebar.title("Find Your Flat")
 st.sidebar.subheader('Ein Projekt von Niels Ham und Lukas Reber')
+st.sidebar.text('Unterstütz durch')
+st.sidebar.image('sg.png')
 st.sidebar.image('opendata_sg.png')
 
 # Filter for Distance to Universities
@@ -52,4 +57,33 @@ for index, row in res.iterrows():
 
 folium_static(m)
 
-st.dataframe(res)
+# create dictionary for selection
+select = dict()
+for index, row in res.iterrows():
+    select[(row.lat,row.lng,row.id)] = f'{row.street_number} - Preis: {row.rent}'
+
+def format_func(option):
+    return select[option]
+
+# dropdown for selection of location
+location = st.selectbox("Wähle eine Wohnung aus den Suchresultaten aus", options=list(select.keys()), format_func=format_func)
+
+radius = 500
+
+def get_parking(lat,lon,radius=1000):
+    r = requests.get(f'https://daten.stadt.sg.ch/api/records/1.0/search/?dataset=freie-parkplatze-in-der-stadt-stgallen-pls&q=&geofilter.distance={lat}%2C{lon}%2C{radius}')
+    nhits = json.loads(r.content)['nhits']
+    if nhits != 0:
+        df = json_normalize(json.loads(r.content)['records'])
+        df[['lon','lat']] = df['geometry.coordinates'].tolist()
+        df = df[['fields.phname','lon','lat']]
+    else:
+        df = pd.DataFrame()
+    return df,nhits
+
+parking,nhits = get_parking(location[0],location[1],radius)
+
+st.text('Parkings, nur mal als Beispiel')
+st.dataframe(parking)
+
+# st.dataframe(res)
