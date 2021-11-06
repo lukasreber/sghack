@@ -6,6 +6,8 @@ import json
 import folium
 from pandas import json_normalize
 
+st.set_page_config(page_title='Find Your Flat',initial_sidebar_state='collapsed',menu_items={'Get Help': None, 'Report a bug': None, 'About': None})
+
 st.image('./data/images/logo.jpeg')
 
 # Import all necessary dat
