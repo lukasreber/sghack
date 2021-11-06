@@ -30,20 +30,24 @@ st.sidebar.image('./data/images/sg.png')
 st.sidebar.image('./data/images/opendata_sg.png')
 st.sidebar.image('./data/images/upinfo.png')
 
+st.markdown('**Hi, schön dich hier bei uns zu haben. Mit Find Your Flat findest du die perfekte Wohnung für deine Alltagsanforderungen. Sag uns einfach, was dir wichtig ist und wir zeigen dir, wo das möglich ist.**')
+
+st.subheader('Wähle die maximale Laufdistanz in Meter')
+
 # Filter for Distance to Universities
-dist_uni = st.slider('Wähle die maximale Laufdistanz in Meter zur Uni',0,6000,1000,50)
+dist_uni = st.slider('zur Uni',0,6000,1000,50)
 immo_uni = immo_uni[immo_uni.distance_meters <= dist_uni].id.tolist()
 
 # Filter for Distance to Supermarkets
-dist_supermarket = st.slider('Wähle die maximale Laufdistanz in Meter zum nächsten Supermarkt',0,6000,500,50)
+dist_supermarket = st.slider('zum nächsten Supermarkt',0,6000,500,50)
 immo_supermarket = immo_supermarket[immo_supermarket.distance_meters <= dist_supermarket].id.tolist()
 
 # Filter for Distance to Train
-dist_trains = st.slider('Wähle die maximale Laufdistanz in Meter zum nächsten Bahnhof',0,6000,1000,50)
+dist_trains = st.slider('zum nächsten Bahnhof',0,6000,1000,50)
 immo_train = immo_train[immo_train.distance_meters <= dist_trains].id.tolist()
 
 # Filter for Distance to Schools
-dist_schools = st.slider('Wähle die maximale Laufdistanz in Meter zur nächsten Schule',0,6000,500,50)
+dist_schools = st.slider('zur nächsten Schule',0,6000,500,50)
 immo_school = immo_school[immo_school.distance_meters <= dist_schools].id.tolist()
 
 # toggle data on map
