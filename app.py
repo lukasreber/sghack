@@ -5,6 +5,8 @@ import requests
 import json
 import folium
 from pandas import json_normalize
+from shapely.geometry import Polygon
+import geopandas as gpd
 
 st.set_page_config(page_title='Find Your Flat',initial_sidebar_state='collapsed',menu_items={'Get Help': None, 'Report a bug': None, 'About': None})
 
@@ -94,7 +96,21 @@ if (res.empty == False):
             df = pd.DataFrame()
         return df,nhits
 
-    parking,nhits = get_parking(location[0],location[1],radius)
+    parking,parking_nhits = get_parking(location[0],location[1],radius)
+
+    # Request Freiraeume
+    def get_freiraeume(lat,lon,radius=1000):
+        r = requests.get(f'https://daten.stadt.sg.ch/api/records/1.0/search/?dataset=freiraume-stadt-stgallen&q=&facet=art&facet=bedeutung&facet=typ&geofilter.distance={lat}%2C{lon}%2C{radius}')
+        nhits = json.loads(r.content)['nhits']
+        if nhits != 0:
+            df = json_normalize(json.loads(r.content)['records'])
+            df[['lon','lat']] = df['geometry.coordinates'].tolist()
+            df = df[['fields.art','lon','lat','fields.typ','fields.geo_shape.coordinates']]
+        else:
+            df = pd.DataFrame()
+        return df,nhits
+
+    freiraeume,freiraeume_nhits = get_freiraeume(location[0],location[1],radius)
 
     # Display Flat selection map
     m = folium.Map(location=[location[0],location[1]], zoom_start=16)
@@ -111,8 +127,15 @@ if (res.empty == False):
 
     for index, row in parking.iterrows():
         popup = folium.Popup('{0}, freie Parkplätze: {1}'.format(row['fields.phname'],row['fields.shortfree']),max_width=300)
-        folium.Marker([row.lat,row.lon],popup=popup).add_to(m)
+        folium.Marker([row.lat,row.lon],popup=popup,icon=folium.Icon(color="black")).add_to(m)
 
+    for index, row in freiraeume.iterrows():
+        popup = folium.Popup('{0}, Typ: {1}'.format(row['fields.art'],row['fields.typ']),max_width=300)
+        folium.Marker([row.lat,row.lon],popup=popup).add_to(m)
+        polygon_geom = Polygon(row['fields.geo_shape.coordinates'][0])
+        polygon = gpd.GeoDataFrame(index=[0], crs='EPSG:4326', geometry=[polygon_geom])
+        folium.GeoJson(polygon).add_to(m)
+    
     folium_static(m)
 
     # Statistics
@@ -124,8 +147,9 @@ if (res.empty == False):
     else:
         parking_count = int(parking['fields.shortfree'].sum())
 
+    st.dataframe(freiraeume)
 
     col1, col2, col3 = st.columns(3)
     col1.metric('Parkhäuser',len(parking.index))
     col2.metric('Freie Parkplätze',parking_count)
-    col3.metric('Parkhäuser',len(parking.index))
+    col3.metric('Freiräume',len(freiraeume.index))
