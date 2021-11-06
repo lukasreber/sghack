@@ -126,6 +126,42 @@ if (res.empty == False):
 
     recycling,recycling_nhits = get_recycling(location[0],location[1],radius)
 
+    # Request Mobility
+    def get_mobility(lat,lon,radius=1000):
+        r = requests.get(f'https://daten.stadt.sg.ch/api/records/1.0/search/?dataset=mobility-stationen-und-fahrzeuge-schweiz&geofilter.distance={lat}%2C{lon}%2C{radius}')
+        nhits = json.loads(r.content)['nhits']
+        if nhits != 0:
+            df = json_normalize(json.loads(r.content)['records'])
+            df[['lon','lat']] = df['geometry.coordinates'].tolist()
+            df = df[['fields.name','lon','lat']]
+        else:
+            df = pd.DataFrame()
+        return df,nhits
+
+    mobility,mobility_nhits = get_mobility(location[0],location[1],radius)
+
+    # Request Velo
+    def get_velo(lat,lon,radius=1000):
+        r = requests.get(f'https://daten.stadt.sg.ch/api/records/1.0/search/?dataset=veloabstellplatze&q=signal%3A%22P+nur+Velo%22&geofilter.distance={lat}%2C{lon}%2C{radius}')
+        nhits = json.loads(r.content)['nhits']
+        if nhits != 0:
+            df = json_normalize(json.loads(r.content)['records'])
+            df[['lon','lat']] = df['geometry.coordinates'].tolist()
+            df = df[['fields.adresse','lon','lat']]
+        else:
+            df = pd.DataFrame()
+        return df,nhits
+
+    velo,velo_nhits = get_velo(location[0],location[1],radius)
+
+    # Is Appartment inside a 30-Tempo Zone
+    def get_zone(lat,lon):
+        r = requests.get(f'https://daten.stadt.sg.ch/api/records/1.0/search/?dataset=tempo-30-zonen&q=&facet=realisiert&geofilter.distance={lat}%2C{lon}')
+        nhits = json.loads(r.content)['nhits']
+        return int(nhits)
+
+    zone_nhits = get_zone(location[0],location[1])
+    
     # Display Flat selection map
     m = folium.Map(location=[location[0],location[1]], zoom_start=16)
 
@@ -141,15 +177,23 @@ if (res.empty == False):
 
     for index, row in parking.iterrows():
         popup = folium.Popup('{0}, freie Parkplätze: {1}'.format(row['fields.phname'],row['fields.shortfree']),max_width=300)
-        folium.Marker([row.lat,row.lon],popup=popup,icon=folium.Icon(color="black")).add_to(m)
+        folium.Marker([row.lat,row.lon],popup=popup,icon=folium.Icon(color="black", icon="car", prefix="fa")).add_to(m)
 
     for index, row in recycling.iterrows():
         popup = folium.Popup('{0}, Abfallarten: {1}'.format(row['fields.standort'],row['fields.abfallarten']),max_width=300)
+        folium.Marker([row.lat,row.lon],popup=popup,icon=folium.Icon(color="green", icon="glyphicon-trash")).add_to(m)
+
+    for index, row in mobility.iterrows():
+        popup = folium.Popup('Mobility Station: {0}'.format(row['fields.name']),max_width=300)
         folium.Marker([row.lat,row.lon],popup=popup,icon=folium.Icon(color="green")).add_to(m)
+
+    for index, row in velo.iterrows():
+        popup = folium.Popup('Veloparkplatz: {0}'.format(row['fields.adresse']),max_width=300)
+        folium.Marker([row.lat,row.lon],popup=popup,icon=folium.Icon(color="green",icon="bicycle",prefix="fa")).add_to(m)
 
     for index, row in freiraeume.iterrows():
         popup = folium.Popup('{0}, Typ: {1}'.format(row['fields.art'],row['fields.typ']),max_width=300)
-        folium.Marker([row.lat,row.lon],popup=popup).add_to(m)
+        folium.Marker([row.lat,row.lon],popup=popup,icon=folium.Icon(color="blue")).add_to(m)
         polygon_geom = Polygon(row['fields.geo_shape.coordinates'][0])
         polygon = gpd.GeoDataFrame(index=[0], crs='EPSG:4326', geometry=[polygon_geom])
         folium.GeoJson(polygon).add_to(m)
@@ -171,3 +215,8 @@ if (res.empty == False):
     col2.metric('Freie Parkplätze',parking_count)
     col3.metric('Freiräume',len(freiraeume.index))
     col1.metric('Sammelstellen',len(recycling.index))
+    col2.metric('Mobility Stationen',len(mobility.index))
+    col3.metric('Veloparkplätze',len(velo.index))
+
+    if (zone_nhits > 0):
+        st.markdown('<div style="background-color: #e1f5fe">Hey hier noch ein Hinweis: Deine Wohnung liegt in einer 30er Zone. Wir gehen daher davon aus, dass sich dein neues Zuhause in einer ruhigen Gegend befindet 👌</div>', unsafe_allow_html=True)
