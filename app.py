@@ -11,8 +11,10 @@ st.image('logo.jpeg')
 # Import all necessary dat
 immo = pd.read_csv('./data/immo_uni.csv')
 supermarkets = pd.read_csv('./data/supermarkets.csv')
+trains = pd.read_csv('./data/train.csv')
 immo_uni = pd.read_csv('./data/immo_uni.csv')
 immo_supermarket = pd.read_csv('./data/immo_supermarkets.csv')
+immo_train = pd.read_csv('./data/immo_train.csv')
 
 
 st.sidebar.title("Find Your Flat")
@@ -30,11 +32,16 @@ immo_uni = immo_uni[immo_uni.distance_meters <= dist_uni].id.tolist()
 dist_supermarket = st.slider('Wähle die maximale Laufdistanz in Meter zum nächsten Supermarkt',0,6000,500,50)
 immo_supermarket = immo_supermarket[immo_supermarket.distance_meters <= dist_supermarket].id.tolist()
 
-# toggle supermarkets on map
+# Filter for Distance to Supermarkets
+dist_trains = st.slider('Wähle die maximale Laufdistanz in Meter zum nächsten Bahnhof',0,6000,500,50)
+immo_train = immo_train[immo_train.distance_meters <= dist_trains].id.tolist()
+
+# toggle data on map
 show_supermarkets = st.checkbox('Alle Supermärkte auf Karte anzeigen')
+show_trains = st.checkbox('Alle Bahnhöfe auf Karte anzeigen')
 
 # compare all lists
-res_id = set(immo_uni) & set(immo_supermarket)
+res_id = set(immo_uni) & set(immo_supermarket) & set(immo_train)
 
 res = immo[immo.id.isin(res_id)]
 
@@ -52,6 +59,10 @@ for index, row in res.iterrows():
 if (show_supermarkets):
     for index, row in supermarkets.iterrows():
         folium.Marker([row.lon,row.lat],popup=row['properties.name'],icon=folium.Icon(color="green", icon="info-sign")).add_to(m)
+
+if (show_trains):
+    for index, row in trains.iterrows():
+        folium.Marker([row.lat,row.lon],popup=row['Bezeichnung'],icon=folium.Icon(color="red", icon="info-sign")).add_to(m)
 
 
 folium_static(m)
@@ -104,9 +115,15 @@ if (res.empty == False):
 
 # Statistics
 st.markdown(f'**Die ausgewählte Wohnung hat im Umkreis von {radius} Meter folgendes zu bieten:**')
-st.dataframe(parking)
+
+# check if dataframe is not empty
+if (parking.empty):
+    parking_count = 0
+else:
+    parking_count = int(parking['fields.shortfree'].sum())
+
 
 col1, col2, col3 = st.columns(3)
 col1.metric('Parkhäuser',len(parking.index))
-col2.metric('Freie Parkplätze',int(parking['fields.shortfree'].sum()))
+col2.metric('Freie Parkplätze',parking_count)
 col3.metric('Parkhäuser',len(parking.index))
