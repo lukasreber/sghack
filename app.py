@@ -112,6 +112,20 @@ if (res.empty == False):
 
     freiraeume,freiraeume_nhits = get_freiraeume(location[0],location[1],radius)
 
+    # Request Recycling
+    def get_recycling(lat,lon,radius=1000):
+        r = requests.get(f'https://daten.stadt.sg.ch/api/records/1.0/search/?dataset=sammelstellen&q=&facet=abfallarten&geofilter.distance={lat}%2C{lon}%2C{radius}')
+        nhits = json.loads(r.content)['nhits']
+        if nhits != 0:
+            df = json_normalize(json.loads(r.content)['records'])
+            df[['lon','lat']] = df['geometry.coordinates'].tolist()
+            df = df[['fields.standort','lon','lat','fields.abfallarten']]
+        else:
+            df = pd.DataFrame()
+        return df,nhits
+
+    recycling,recycling_nhits = get_recycling(location[0],location[1],radius)
+
     # Display Flat selection map
     m = folium.Map(location=[location[0],location[1]], zoom_start=16)
 
@@ -128,6 +142,10 @@ if (res.empty == False):
     for index, row in parking.iterrows():
         popup = folium.Popup('{0}, freie Parkplätze: {1}'.format(row['fields.phname'],row['fields.shortfree']),max_width=300)
         folium.Marker([row.lat,row.lon],popup=popup,icon=folium.Icon(color="black")).add_to(m)
+
+    for index, row in recycling.iterrows():
+        popup = folium.Popup('{0}, Abfallarten: {1}'.format(row['fields.standort'],row['fields.abfallarten']),max_width=300)
+        folium.Marker([row.lat,row.lon],popup=popup,icon=folium.Icon(color="green")).add_to(m)
 
     for index, row in freiraeume.iterrows():
         popup = folium.Popup('{0}, Typ: {1}'.format(row['fields.art'],row['fields.typ']),max_width=300)
@@ -147,9 +165,9 @@ if (res.empty == False):
     else:
         parking_count = int(parking['fields.shortfree'].sum())
 
-    st.dataframe(freiraeume)
 
     col1, col2, col3 = st.columns(3)
     col1.metric('Parkhäuser',len(parking.index))
     col2.metric('Freie Parkplätze',parking_count)
     col3.metric('Freiräume',len(freiraeume.index))
+    col1.metric('Sammelstellen',len(recycling.index))
