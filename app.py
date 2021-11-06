@@ -6,7 +6,7 @@ import json
 import folium
 from pandas import json_normalize
 
-st.image('logo.jpeg')
+st.image('./data/images/logo.jpeg')
 
 # Import all necessary dat
 immo = pd.read_csv('./data/immo_uni.csv')
@@ -20,9 +20,9 @@ immo_train = pd.read_csv('./data/immo_train.csv')
 st.sidebar.title("Find Your Flat")
 st.sidebar.subheader('Ein Projekt von Niels Ham und Lukas Reber')
 st.sidebar.text('Unterstützt durch')
-st.sidebar.image('sg.png')
-st.sidebar.image('opendata_sg.png')
-st.sidebar.image('upinfo.png')
+st.sidebar.image('./data/images/sg.png')
+st.sidebar.image('./data/images/opendata_sg.png')
+st.sidebar.image('./data/images/upinfo.png')
 
 # Filter for Distance to Universities
 dist_uni = st.slider('Wähle die maximale Laufdistanz in Meter zur Uni',0,6000,1000,50)
@@ -113,17 +113,17 @@ if (res.empty == False):
 
     folium_static(m)
 
-# Statistics
-st.markdown(f'**Die ausgewählte Wohnung hat im Umkreis von {radius} Meter folgendes zu bieten:**')
+    # Statistics
+    st.markdown(f'**Die ausgewählte Wohnung hat im Umkreis von {radius} Meter folgendes zu bieten:**')
 
-# check if dataframe is not empty
-if (parking.empty):
-    parking_count = 0
-else:
-    parking_count = int(parking['fields.shortfree'].sum())
+    # check if dataframe is not empty
+    if (parking.empty):
+        parking_count = 0
+    else:
+        parking_count = int(parking['fields.shortfree'].sum())
 
 
-col1, col2, col3 = st.columns(3)
-col1.metric('Parkhäuser',len(parking.index))
-col2.metric('Freie Parkplätze',parking_count)
-col3.metric('Parkhäuser',len(parking.index))
+    col1, col2, col3 = st.columns(3)
+    col1.metric('Parkhäuser',len(parking.index))
+    col2.metric('Freie Parkplätze',parking_count)
+    col3.metric('Parkhäuser',len(parking.index))
