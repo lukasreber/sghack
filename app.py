@@ -16,9 +16,11 @@ st.image('./data/images/logo.jpeg')
 immo = pd.read_csv('./data/immo_uni.csv')
 supermarkets = pd.read_csv('./data/supermarkets.csv')
 trains = pd.read_csv('./data/train.csv')
+schools = pd.read_csv('./data/schools.csv')
 immo_uni = pd.read_csv('./data/immo_uni.csv')
 immo_supermarket = pd.read_csv('./data/immo_supermarkets.csv')
 immo_train = pd.read_csv('./data/immo_train.csv')
+immo_school = pd.read_csv('./data/immo_school.csv')
 
 
 st.sidebar.title("Find Your Flat")
@@ -36,16 +38,21 @@ immo_uni = immo_uni[immo_uni.distance_meters <= dist_uni].id.tolist()
 dist_supermarket = st.slider('Wähle die maximale Laufdistanz in Meter zum nächsten Supermarkt',0,6000,500,50)
 immo_supermarket = immo_supermarket[immo_supermarket.distance_meters <= dist_supermarket].id.tolist()
 
-# Filter for Distance to Supermarkets
-dist_trains = st.slider('Wähle die maximale Laufdistanz in Meter zum nächsten Bahnhof',0,6000,500,50)
+# Filter for Distance to Train
+dist_trains = st.slider('Wähle die maximale Laufdistanz in Meter zum nächsten Bahnhof',0,6000,1000,50)
 immo_train = immo_train[immo_train.distance_meters <= dist_trains].id.tolist()
 
+# Filter for Distance to Schools
+dist_schools = st.slider('Wähle die maximale Laufdistanz in Meter zur nächsten Schule',0,6000,500,50)
+immo_school = immo_school[immo_school.distance_meters <= dist_schools].id.tolist()
+
 # toggle data on map
-show_supermarkets = st.checkbox('Alle Supermärkte auf Karte anzeigen')
-show_trains = st.checkbox('Alle Bahnhöfe auf Karte anzeigen')
+show_supermarkets = st.checkbox('Alle Supermärkte auf der Karte anzeigen')
+show_trains = st.checkbox('Alle Bahnhöfe auf der Karte anzeigen')
+show_schools = st.checkbox('Alle Schulen auf der Karte anzeigen')
 
 # compare all lists
-res_id = set(immo_uni) & set(immo_supermarket) & set(immo_train)
+res_id = set(immo_uni) & set(immo_supermarket) & set(immo_train) & set(immo_school)
 
 res = immo[immo.id.isin(res_id)]
 
@@ -67,6 +74,10 @@ if (show_supermarkets):
 if (show_trains):
     for index, row in trains.iterrows():
         folium.Marker([row.lat,row.lon],popup=row['Bezeichnung'],icon=folium.Icon(color="red", icon="info-sign")).add_to(m)
+
+if (show_schools):
+    for index, row in schools.iterrows():
+        folium.Marker([row.lat,row.lon],popup=row['Bezeichnung'],icon=folium.Icon(color="blue", icon="info-sign")).add_to(m)
 
 
 folium_static(m)
