@@ -19,6 +19,7 @@ st.sidebar.subheader('Ein Projekt von Niels Ham und Lukas Reber')
 st.sidebar.text('Unterstütz durch')
 st.sidebar.image('sg.png')
 st.sidebar.image('opendata_sg.png')
+st.sidebar.image('upinfo.png')
 
 # Filter for Distance to Universities
 dist_uni = st.slider('Wähle die maximale Laufdistanz in Meter zur Uni',0,6000)
@@ -57,33 +58,48 @@ for index, row in res.iterrows():
 
 folium_static(m)
 
-# create dictionary for selection
-select = dict()
-for index, row in res.iterrows():
-    select[(row.lat,row.lng,row.id)] = f'{row.street_number} - Preis: {row.rent}'
+if (res.empty == False):
+    # create dictionary for selection
+    select = dict()
+    for index, row in res.iterrows():
+        select[(row.lat,row.lng,row.id)] = f'{row.street_number} - Preis: {row.rent}'
 
-def format_func(option):
-    return select[option]
+    def format_func(option):
+        return select[option]
 
-# dropdown for selection of location
-location = st.selectbox("Wähle eine Wohnung aus den Suchresultaten aus", options=list(select.keys()), format_func=format_func)
+    # dropdown for selection of location
+    location = st.selectbox("Wähle eine Wohnung aus den Suchresultaten aus", options=list(select.keys()), format_func=format_func)
 
-radius = 500
+    radius = st.slider('Wähle den Radius in Meter',200,1000)
 
-def get_parking(lat,lon,radius=1000):
-    r = requests.get(f'https://daten.stadt.sg.ch/api/records/1.0/search/?dataset=freie-parkplatze-in-der-stadt-stgallen-pls&q=&geofilter.distance={lat}%2C{lon}%2C{radius}')
-    nhits = json.loads(r.content)['nhits']
-    if nhits != 0:
-        df = json_normalize(json.loads(r.content)['records'])
-        df[['lon','lat']] = df['geometry.coordinates'].tolist()
-        df = df[['fields.phname','lon','lat']]
-    else:
-        df = pd.DataFrame()
-    return df,nhits
+    def get_parking(lat,lon,radius=1000):
+        r = requests.get(f'https://daten.stadt.sg.ch/api/records/1.0/search/?dataset=freie-parkplatze-in-der-stadt-stgallen-pls&q=&geofilter.distance={lat}%2C{lon}%2C{radius}')
+        nhits = json.loads(r.content)['nhits']
+        if nhits != 0:
+            df = json_normalize(json.loads(r.content)['records'])
+            df[['lon','lat']] = df['geometry.coordinates'].tolist()
+            df = df[['fields.phname','lon','lat']]
+        else:
+            df = pd.DataFrame()
+        return df,nhits
 
-parking,nhits = get_parking(location[0],location[1],radius)
+    parking,nhits = get_parking(location[0],location[1],radius)
 
-st.text('Parkings, nur mal als Beispiel')
-st.dataframe(parking)
+    m = folium.Map(location=[location[0],location[1]], zoom_start=16)
 
-# st.dataframe(res)
+    folium.Circle(
+        location=[location[0],location[1]], 
+        radius=radius,
+        color="#3186cc",
+        fill=True,
+        fill_color="#3186cc",
+        popup="test"
+    ).add_to(m)
+
+    folium.Marker([location[0],location[1]],popup='selection',icon=folium.Icon(color="red", icon="info-sign")).add_to(m)
+
+    for index, row in parking.iterrows():
+        folium.Marker([row.lat,row.lon],popup=row['fields.phname']).add_to(m)
+
+    folium_static(m)
+    
